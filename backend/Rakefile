@@ -1,0 +1,28 @@
+# Rakefile
+
+require 'sequel'
+require 'sequel/extensions/migration'
+require 'yaml'
+
+namespace :db do
+  task :migrate do
+    db = Sequel.connect(ENV['DATABASE_URL'] || YAML.load_file('config/database.yml')['development'])
+    Sequel::Migrator.run(db, 'db/migrations')
+  end
+
+  task :create_migration, [:name] do |t, args|
+    raise "Missing migration name" unless args[:name]
+    timestamp = Time.now.strftime('%Y%m%d%H%M%S')
+    filename = "db/migrations/#{timestamp}_#{args[:name]}.rb"
+    File.open(filename, 'w') do |file|
+      file.write <<-MIGRATION
+Sequel.migration do
+  change do
+    # your migration code here
+  end
+end
+      MIGRATION
+    end
+    puts "Created migration: #{filename}"
+  end
+end

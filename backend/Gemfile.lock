@@ -1,0 +1,46 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    bcrypt (3.1.20)
+    bigdecimal (3.2.2)
+    dotenv (3.1.8)
+    fileutils (1.7.3)
+    logger (1.7.0)
+    nio4r (2.7.4)
+    pg (1.5.9)
+    puma (6.6.0)
+      nio4r (~> 2.0)
+    rack (3.1.16)
+    rack-cors (3.0.0)
+      logger
+      rack (>= 3.0.14)
+    rackup (2.2.1)
+      rack (>= 3)
+    roda (3.93.0)
+      rack
+    ruby_http_client (3.5.5)
+    sendgrid-ruby (6.7.0)
+      ruby_http_client (~> 3.4)
+    sequel (5.93.0)
+      bigdecimal
+    yaml (0.4.0)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  bcrypt
+  dotenv
+  fileutils
+  pg
+  puma (~> 6.6)
+  rack-cors
+  rackup
+  roda
+  sendgrid-ruby
+  sequel
+  yaml
+
+BUNDLED WITH
+   2.6.9

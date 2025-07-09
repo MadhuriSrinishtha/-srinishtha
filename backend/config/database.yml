@@ -1,0 +1,7 @@
+
+development:
+  adapter: postgres
+  user: srinishtha_user 
+  password: Pass
+  host: localhost
+  database: srinishtha_db

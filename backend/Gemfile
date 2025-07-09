@@ -1,0 +1,17 @@
+source 'https://rubygems.org'
+
+gem 'roda'
+gem 'rack-cors'
+gem 'sendgrid-ruby'
+gem 'dotenv'
+gem 'sequel'
+gem 'pg'
+gem 'rack-cors'
+gem 'fileutils'
+gem 'yaml'
+gem 'rackup'
+gem 'bcrypt'
+gem "puma", "~> 6.6"
+gem 'rack-cors'
+
+
