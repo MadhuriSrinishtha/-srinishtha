@@ -1,27 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import BASE_URL from "@/config";
 
 const Login = ({ setIsLoggedIn }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     employee_id: "",
     official_email: "",
-    password: ""
+    password: "",
   });
-  const [rememberMe, setRememberMe] = useState(false);
+
+  const [rememberMe, setRememberMe] = useState(false); // Optional UI only
   const [error, setError] = useState("");
-  const [isResetRequested, setIsResetRequested] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Clear session on mount
   useEffect(() => {
-    // Clear incorrect localStorage values to prevent pre-filling with typo
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userEmployeeId");
-    localStorage.removeItem("rememberMe");
-
-    localStorage.removeItem('isEmployeeLoggedIn');
-    localStorage.removeItem('employeeEmail');
-    localStorage.removeItem('employeeId');
     setIsLoggedIn(false);
   }, [setIsLoggedIn]);
 
@@ -29,129 +23,57 @@ const Login = ({ setIsLoggedIn }) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setIsResetRequested(false);
     setIsLoading(true);
 
-    if (!formData.employee_id || !formData.official_email || !formData.password) {
-      setError("Please enter employee ID, official email, and password");
+    const { employee_id, official_email, password } = formData;
+    if (!employee_id || !official_email || !password) {
+      setError("Please fill in all fields.");
       setIsLoading(false);
       return;
     }
-
-    // Basic email validation to catch common typos
-    if (formData.official_email.includes("vijayakumur")) {
-      setError("Possible typo in email. Did you mean 'vijayakumar.sahukari@gmail.com'?");
-      setIsLoading(false);
-      return;
-    }
-
-    const loginPayload = {
-      employee_id: formData.employee_id,
-      official_email: formData.official_email,
-      password: formData.password
-    };
-    const timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-    console.log(`[${timestamp}] Sending login request to: http://localhost:9292/api/v1/employees/login`);
-    console.log(`[${timestamp}] Login payload:`, JSON.stringify(loginPayload));
 
     try {
-      const response = await fetch('http://localhost:9292/api/v1/employees/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'http://localhost:5173'
-        },
-        body: JSON.stringify(loginPayload)
+      const loginRes = await fetch(`${BASE_URL}/api/v1/employees/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          employee_id,
+          official_email,
+          password,
+        }),
       });
-      const data = await response.json();
 
-      console.log(`[${timestamp}] Login response:`, JSON.stringify(data));
+      const loginData = await loginRes.json();
 
-      if (response.ok && data.success) {
-        localStorage.setItem("isEmployeeLoggedIn", "true");
-        localStorage.setItem("employeeEmail", formData.official_email);
-        localStorage.setItem("employeeId", formData.employee_id);
+      if (!loginRes.ok || !loginData.success) {
+        setError(loginData.error || "Login failed");
+        return;
+      }
 
-        if (rememberMe) {
-          localStorage.setItem("userEmail", formData.official_email);
-          localStorage.setItem("userEmployeeId", formData.employee_id);
-          localStorage.setItem("rememberMe", "true");
-        } else {
-          localStorage.removeItem("userEmail");
-          localStorage.removeItem("userEmployeeId");
-          localStorage.removeItem("rememberMe");
-        }
+      // Fetch user session info after login
+      const sessionRes = await fetch(`${BASE_URL}/api/v1/employees/me`, {
+        credentials: "include",
+      });
 
+      const sessionData = await sessionRes.json();
+
+      if (sessionRes.ok && sessionData.official_email) {
         setIsLoggedIn(true);
-        setFormData({ employee_id: "", official_email: "", password: "" });
         navigate("/dashboard", { replace: true });
       } else {
-        setError(data.error || "Login failed. Please verify your credentials or use 'Forgot Password'.");
+        setError("Session verification failed.");
       }
-    } catch (error) {
-      console.error(`[${timestamp}] Login error:`, error);
-      setError("Login failed. Please check your network or contact admin.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    setError("");
-    setIsResetRequested(false);
-    setIsLoading(true);
-
-    if (!formData.employee_id || !formData.official_email) {
-      setError("Please enter both employee ID and official email to request a password reset.");
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.official_email.includes("vijayakumur")) {
-      setError("Possible typo in email. Did you mean 'vijayakumar.sahukari@gmail.com'?");
-      setIsLoading(false);
-      return;
-    }
-
-    const resetPayload = {
-      employee_id: formData.employee_id,
-      official_email: formData.official_email
-    };
-    const timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-    console.log(`[${timestamp}] Sending password reset request to: http://localhost:9292/api/v1/employees/password-reset`);
-    console.log(`[${timestamp}] Reset payload:`, JSON.stringify(resetPayload));
-
-    try {
-      const response = await fetch('http://localhost:9292/api/v1/employees/password-reset', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': 'http://localhost:5173'
-        },
-        body: JSON.stringify(resetPayload)
-      });
-      const data = await response.json();
-
-      console.log(`[${timestamp}] Password reset response:`, JSON.stringify(data));
-
-      if (response.ok) {
-        setIsResetRequested(true);
-        setError("");
-        setFormData({ ...formData, password: "" });
-      } else {
-        setError(data.error || "Failed to send reset link. Please verify employee ID and email.");
-      }
-    } catch (error) {
-      console.error(`[${timestamp}] Password reset error:`, error);
-      setError("Failed to send reset link. Please check your network or contact admin.");
+    } catch (err) {
+      console.error("[Login] Error:", err);
+      setError("Network error. Try again.");
     } finally {
       setIsLoading(false);
     }
@@ -168,12 +90,6 @@ const Login = ({ setIsLoggedIn }) => {
           </div>
         )}
 
-        {isResetRequested && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            A password reset link has been generated. Check the console or contact admin for the link.
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">Employee ID</label>
@@ -184,7 +100,7 @@ const Login = ({ setIsLoggedIn }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              placeholder="Enter Employee ID (e.g., EMP-786)"
+              placeholder="EMP-123"
               disabled={isLoading}
             />
           </div>
@@ -198,7 +114,7 @@ const Login = ({ setIsLoggedIn }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              placeholder="Enter Official Email (e.g., vijayakumar.sahukari@gmail.com)"
+              placeholder="you@example.com"
               disabled={isLoading}
             />
           </div>
@@ -212,7 +128,7 @@ const Login = ({ setIsLoggedIn }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              placeholder="Enter Password (default: user@123)"
+              placeholder="Enter password"
               disabled={isLoading}
             />
           </div>
@@ -224,25 +140,23 @@ const Login = ({ setIsLoggedIn }) => {
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                disabled={isLoading}
               />
-              <label className="ml-2 block text-sm text-gray-900">Remember me</label>
+              <label className="ml-2 text-sm text-gray-900">Remember me</label>
             </div>
-            <a
-              href="#"
-              onClick={handleForgotPassword}
-              className={`text-sm text-blue-600 hover:text-blue-800 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
+
+            <a href="/request-reset" className="text-sm text-blue-600 hover:text-blue-800">
               Forgot Password?
             </a>
           </div>
 
           <button
             type="submit"
-            className={`w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+              isLoading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
             disabled={isLoading}
           >
-            {isLoading ? 'Signing In...' : 'Sign In'}
+            {isLoading ? "Signing In..." : "Sign In"}
           </button>
         </form>
       </div>

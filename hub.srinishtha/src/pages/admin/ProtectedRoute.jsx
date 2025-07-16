@@ -1,62 +1,32 @@
-import { Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import BASE_URL from '@/config';
 
 const ProtectedRoute = ({ children }) => {
-  const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [checking, setChecking] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
-    const checkAuth = () => {
-      const loginStatus = localStorage.getItem('isAdminLoggedIn');
-      const loginTime = localStorage.getItem('loginTime');
-      const currentTime = new Date().getTime();
-
-      if (loginStatus === 'true' && loginTime) {
-        const timeDiff = currentTime - parseInt(loginTime);
-        const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-        if (timeDiff > fiveMinutes) {
-          // Session expired
-          localStorage.removeItem('isAdminLoggedIn');
-          localStorage.removeItem('loginTime');
-          setIsAuthenticated(false);
-        } else {
-          // Update login time to keep session active only if user is interacting
-          if (document.hasFocus()) {
-            localStorage.setItem('loginTime', currentTime.toString());
-          }
-          setIsAuthenticated(true);
-        }
-      } else {
+    const checkSession = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/v1/employees/me`, {
+          credentials: 'include',
+        });
+        setIsAuthenticated(res.ok);
+      } catch {
         setIsAuthenticated(false);
+      } finally {
+        setChecking(false);
       }
-      setIsLoading(false);
     };
 
-    checkAuth();
-
-    // Check authentication status every 30 seconds
-    const interval = setInterval(checkAuth, 30000);
-
-    return () => {
-      clearInterval(interval);
-    };
+    checkSession();
   }, []);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  if (checking) return <div className="text-center p-6">Checking authentication...</div>;
 
-  if (!isAuthenticated) {
-    return <Navigate to="/admin/login" state={{ from: location.pathname }} replace />;
-  }
-
-  return children;
+  return isAuthenticated ? children : <Navigate to="/login" state={{ from: location }} replace />;
 };
 
 export default ProtectedRoute;

@@ -1,5 +1,6 @@
 require 'sequel'
 require 'yaml'
+require_relative 'db/extensions/sequel_extensions'
 
 env = ENV['RACK_ENV'] || 'development'
 db_config = YAML.load_file('config/database.yml')[env]

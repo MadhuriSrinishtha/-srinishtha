@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BASE_URL from '@/config'; // Adjust the path if needed
 
 const AdminDashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -7,7 +8,7 @@ const AdminDashboard = () => {
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:9292/api/v1/announcements')
+    fetch(`${BASE_URL}/api/v1/announcements`)
       .then(res => res.json())
       .then(setAnnouncements)
       .catch(err => {
@@ -27,7 +28,7 @@ const AdminDashboard = () => {
     };
 
     try {
-      const res = await fetch('http://localhost:9292/api/v1/announcements', {
+      const res = await fetch(`${BASE_URL}/api/v1/announcements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAnnouncement)

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import BASE_URL from '@/config'; // Adjust the path if needed
 
 const CompanyPolicies = () => {
   const [policies, setPolicies] = useState([]);
@@ -6,7 +7,7 @@ const CompanyPolicies = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:9292/api/v1/policies')
+    fetch(`${BASE_URL}/api/v1/policies`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch policies");
         return res.json();

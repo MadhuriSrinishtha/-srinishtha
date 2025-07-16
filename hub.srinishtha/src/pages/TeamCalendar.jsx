@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-
-const API_URL = 'http://localhost:9292/api/v1/admin/events';
+import BASE_URL from '@/config'; // Adjust the path if needed
 
 const CompanyHolidays = () => {
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(API_URL)
+    fetch(`${BASE_URL}/api/v1/admin/events`)
       .then((res) => res.json())
       .then((data) => {
         // Sort by date (earliest to latest)

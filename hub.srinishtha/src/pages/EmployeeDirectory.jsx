@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaSearch } from 'react-icons/fa';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:9292';
+import BASE_URL from '@/config'; // Adjust the path if needed
 
 const EmployeeDirectory = () => {
   const [employees, setEmployees] = useState([]);
@@ -14,7 +13,7 @@ const EmployeeDirectory = () => {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const url = `${API_BASE_URL}/api/v1/employees${searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''}`;
+      const url = `${BASE_URL}/api/v1/employees${searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''}`;
       console.log('[FetchEmployees] Request URL:', url);
       const res = await axios.get(url);
       const mapped = (Array.isArray(res.data) ? res.data : []).map(emp => ({

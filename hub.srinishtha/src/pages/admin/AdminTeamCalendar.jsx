@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaTrash } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const API_ROOT = 'http://localhost:9292/api/v1/admin/events';
+import BASE_URL from '@/config'; // Adjust the path if needed
 
 const AdminTeamCalendar = () => {
   const [events, setEvents] = useState([]);
@@ -15,7 +14,7 @@ const AdminTeamCalendar = () => {
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch(API_ROOT);
+      const res = await fetch(`${BASE_URL}/api/v1/admin/events`);
       const data = await res.json();
       setEvents(
         data.sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -29,7 +28,7 @@ const AdminTeamCalendar = () => {
     e.preventDefault();
     if (!newEvent.title || !newEvent.date) return;
     try {
-      const res = await fetch(API_ROOT, {
+      const res = await fetch(`${BASE_URL}/api/v1/admin/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEvent),
@@ -48,7 +47,7 @@ const AdminTeamCalendar = () => {
 
   const handleDeleteEvent = async (id) => {
     try {
-      const res = await fetch(`${API_ROOT}/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${BASE_URL}/api/v1/admin/events/${id}`, { method: 'DELETE' });
       if (res.ok) fetchEvents();
       else console.error('Failed to delete event', id);
     } catch (err) {

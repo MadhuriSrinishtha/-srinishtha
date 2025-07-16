@@ -1,19 +1,33 @@
-
+// ✅ Navbar.jsx — Fully preserves your UI, adds backend session-based employee name
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BASE_URL from '@/config';
 
 const Navbar = () => {
   const [employeeName, setEmployeeName] = useState('');
   const navigate = useNavigate();
 
+  // ✅ Fetch from backend session instead of localStorage
   useEffect(() => {
-    const storedEmployeeName = localStorage.getItem('employeeName');
-    if (storedEmployeeName) {
-      setEmployeeName(storedEmployeeName);
-    }
+    const fetchUser = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/v1/employees/me`, {
+          credentials: 'include',
+        });
+        const data = await res.json();
+        if (res.ok && data.official_email) {
+          const name = data.official_email.split('@')[0].replace('.', ' ');
+          setEmployeeName(name.charAt(0).toUpperCase() + name.slice(1));
+        } else {
+          setEmployeeName('Guest');
+        }
+      } catch {
+        setEmployeeName('Guest');
+      }
+    };
+    fetchUser();
   }, []);
 
-  // Extract first name from employeeName
   const firstName = employeeName ? employeeName.split(' ')[0] : 'Guest';
 
   return (
@@ -33,7 +47,7 @@ const Navbar = () => {
           </svg>
         </div>
         <div className="z-10 text-white">
-          <h1 className="text-3xl font-bold">Welcome, {employeeName || 'Guest'}</h1>
+          <h1 className="text-3xl font-bold">Welcome, {firstName}</h1>
           <p className="mt-2 text-lg font-light">Have a great time</p>
         </div>
       </div>

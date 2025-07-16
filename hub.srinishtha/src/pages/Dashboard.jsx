@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Card from '../components/Card';
 import { FaUser } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import BASE_URL from '@/config'; // Adjust the path if needed
 
 const Dashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -13,7 +14,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetch("http://localhost:9292/api/v1/announcements")
+    fetch(`${BASE_URL}/api/v1/announcements`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to load");
         return res.json();

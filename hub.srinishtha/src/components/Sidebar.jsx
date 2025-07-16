@@ -1,4 +1,4 @@
-
+// ✅ Sidebar.jsx - Final version (no /logout route, session logout only)
 import React from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -33,11 +33,7 @@ const Sidebar = ({ onLogout }) => {
   return (
     <div className="w-64 h-screen bg-white shadow-lg flex flex-col fixed">
       <div className="p-6 border-b border-gray-200 flex items-center space-x-3">
-        <img
-          src={logo}
-          alt="Logo"
-          className="w-10 h-10 object-contain"
-        />
+        <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
         <h1 className="text-xl font-bold text-blue-700">Srinishtha Hub</h1>
       </div>
       <nav className="flex-1 p-4">
@@ -57,9 +53,7 @@ const Sidebar = ({ onLogout }) => {
                   <span>{item.name}</span>
                 </NavLink>
               ) : (
-                <div
-                  className="flex items-center space-x-3 p-3 rounded-lg text-gray-400 cursor-not-allowed"
-                >
+                <div className="flex items-center space-x-3 p-3 rounded-lg text-gray-400 cursor-not-allowed">
                   <span className="text-lg">{item.icon}</span>
                   <span>{item.name}</span>
                 </div>
@@ -69,14 +63,14 @@ const Sidebar = ({ onLogout }) => {
         </ul>
       </nav>
       <div className="p-4 border-t border-gray-200">
-        <NavLink
-          to="/logout"
+        {/* ✅ Logout button with no routing */}
+        <button
           onClick={onLogout}
-          className="flex items-center space-x-3 p-3 rounded-lg text-gray-700"
+          className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 w-full text-left hover:bg-gray-100"
         >
           <FaSignOutAlt className="text-lg" />
           <span>Logout</span>
-        </NavLink>
+        </button>
       </div>
     </div>
   );

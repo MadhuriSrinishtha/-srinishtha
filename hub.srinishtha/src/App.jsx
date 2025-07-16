@@ -1,7 +1,8 @@
+// ✅ App.jsx (Main app entry - session-based authentication)
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Login from './pages/Login';
-import AdminLogin from './pages/admin/AdminLogin.jsx';
+import AdminLogin from './pages/admin/AdminLogin';
 import AdminHrZone from './pages/admin/AdminHrZone';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Dashboard from './pages/Dashboard';
@@ -9,54 +10,53 @@ import HrZone from './pages/HrZone';
 import ProtectedRoute from './pages/admin/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
-import ResetPassword from './pages/ResetPassword.jsx';
+import RequestReset from './pages/RequestReset';
+import ResetPassword from './pages/ResetPassword';
+import BASE_URL from './config';
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // ✅ Check login session on app mount
   useEffect(() => {
-    // Clear all login-related data from localStorage on app startup
-    localStorage.removeItem('isEmployeeLoggedIn');
-    localStorage.removeItem('employeeEmail');
-    localStorage.removeItem('employeeName');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('rememberMe');
-    setIsLoggedIn(false);
+    const checkSession = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/v1/employees/me`, {
+          credentials: 'include', // include cookie
+        });
+        setIsLoggedIn(res.ok);
+      } catch {
+        setIsLoggedIn(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkSession();
   }, []);
 
-  const handleEmployeeLogout = () => {
-    localStorage.removeItem('isEmployeeLoggedIn');
-    localStorage.removeItem('employeeEmail');
-    localStorage.removeItem('employeeName');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('rememberMe');
-    setIsLoggedIn(false);
-  };
+  if (loading) return <div className="p-10 text-center">Loading...</div>;
 
-  const handleAdminLogout = () => {
-    localStorage.removeItem('isAdminLoggedIn');
-    localStorage.removeItem('adminEmail');
-    localStorage.removeItem('adminPassword');
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('loginTime');
+  // ✅ Handle logout - server-side session clear
+  const handleEmployeeLogout = async () => {
+    await fetch(`${BASE_URL}/api/v1/employees/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    setIsLoggedIn(false);
   };
 
   return (
     <Router>
       <Routes>
-        {/* Root route - always redirect to login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-
         {/* Public routes */}
-        <Route
-          path="/login"
-          element={
-            isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login setIsLoggedIn={setIsLoggedIn} />
-          }
-        />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/request-reset" element={<RequestReset />} />
+        <Route path="/reset-password" element={<ResetPassword setIsLoggedIn={setIsLoggedIn} />} />
 
-        {/* Protected admin routes */}
+        {/* Admin routes */}
         <Route
           path="/admin/*"
           element={
@@ -72,7 +72,7 @@ function App() {
           }
         />
 
-        {/* Protected user routes */}
+        {/* Employee protected routes */}
         <Route
           path="/*"
           element={
@@ -85,7 +85,7 @@ function App() {
                     <Routes>
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/hr-zone/*" element={<HrZone />} />
-                      <Route path="*" element={<Navigate to="/login" replace />} />
+                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                   </div>
                 </div>

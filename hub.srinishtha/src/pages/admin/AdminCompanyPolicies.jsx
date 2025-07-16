@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaSyncAlt, FaEyeSlash } from 'react-icons/fa';
+import { FaPlus, FaSyncAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import BASE_URL from '@/config'; // e.g., export default "http://localhost:9292";
 
 const AdminCompanyPolicies = () => {
   const [policies, setPolicies] = useState([]);
@@ -9,7 +10,7 @@ const AdminCompanyPolicies = () => {
 
   const fetchPolicies = async () => {
     try {
-      const res = await fetch('http://localhost:9292/api/v1/policies');
+      const res = await fetch(`${BASE_URL}/api/v1/policies`);
       const data = await res.json();
       setPolicies(data);
     } catch (err) {
@@ -28,10 +29,9 @@ const AdminCompanyPolicies = () => {
     formData.append('file', newPolicy.file);
 
     try {
-      const res = await fetch('http://localhost:9292/api/v1/policies', {
+      const res = await fetch(`${BASE_URL}/api/v1/policies`, {
         method: 'POST',
         body: formData,
-        // No headers!
       });
 
       const data = await res.json();
@@ -52,7 +52,7 @@ const AdminCompanyPolicies = () => {
     formData.append('file', file);
 
     try {
-      await fetch(`http://localhost:9292/api/v1/policies/${id}/file`, {
+      await fetch(`${BASE_URL}/api/v1/policies/${id}/file`, {
         method: 'PATCH',
         body: formData,
       });
@@ -64,12 +64,12 @@ const AdminCompanyPolicies = () => {
 
   const handleToggleHide = async (id) => {
     try {
-      await fetch(`http://localhost:9292/api/v1/policies/${id}/hide`, {
+      await fetch(`${BASE_URL}/api/v1/policies/${id}/hide`, {
         method: 'PATCH',
       });
       fetchPolicies();
     } catch (err) {
-      console.error('Error hiding policy:', err);
+      console.error('Error toggling visibility:', err);
     }
   };
 
@@ -112,7 +112,7 @@ const AdminCompanyPolicies = () => {
             />
             <button
               type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
               Save Policy
             </button>
@@ -121,11 +121,27 @@ const AdminCompanyPolicies = () => {
       </AnimatePresence>
 
       {policies.map((policy) => (
-        <div key={policy.id} className={`p-4 bg-white border rounded-lg shadow mb-4 ${policy.is_hidden ? 'opacity-50' : ''}`}>
+        <div
+          key={policy.id}
+          className={`p-4 bg-white border rounded-lg shadow mb-4 ${
+            policy.is_hidden ? 'opacity-50' : ''
+          }`}
+        >
           <h3 className="text-lg font-bold">{policy.title}</h3>
-          <p>File: {policy.file_name}</p>
+          <p>
+            File:{' '}
+            <a
+              href={policy.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              {policy.file_name}
+            </a>
+          </p>
           <div className="flex gap-3 mt-2">
             <button
+              title="Update File"
               onClick={() => {
                 const input = document.createElement('input');
                 input.type = 'file';
@@ -140,8 +156,11 @@ const AdminCompanyPolicies = () => {
             >
               <FaSyncAlt />
             </button>
-            <button onClick={() => handleToggleHide(policy.id)}>
-              <FaEyeSlash />
+            <button
+              onClick={() => handleToggleHide(policy.id)}
+              className="text-sm text-gray-600 underline"
+            >
+              {policy.is_hidden ? 'Unhide' : 'Hide'}
             </button>
           </div>
         </div>

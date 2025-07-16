@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { FaEye, FaSearch, FaPlus, FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
+import { FaEye, FaSearch, FaPlus, FaChevronDown, FaChevronUp, FaTimes } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import debounce from 'lodash/debounce';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:9292';
+import debounce from 'lodash.debounce';
+import BASE_URL from '@/config';
 
 const initialFormState = {
   employeeId: '',
@@ -41,19 +39,31 @@ const AdminEmployeeDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [showPersonalInfo, setShowPersonalInfo] = useState(true);
   const [showProfessionalInfo, setShowProfessionalInfo] = useState(true);
   const formRef = useRef(null);
 
-  const fetchEmployees = async () => {
-    setIsLoading(true);
+  const fetchEmployees = useCallback(async (term = '') => {
+    console.log('[FetchEmployees] Starting fetch with search term:', term);
+    setIsSearchLoading(true);
+    setError(null);
     try {
-      const url = `${API_BASE_URL}/api/v1/employees${searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''}`;
-      console.log('[FetchEmployees] Request URL:', url);
+      const url = term
+        ? `${BASE_URL}/api/v1/employees?search=${encodeURIComponent(term.trim())}`
+        : `${BASE_URL}/api/v1/employees`;
+      console.log('[FetchEmployees] API URL:', url);
       const res = await axios.get(url, { withCredentials: true });
-      const mapped = (Array.isArray(res.data) ? res.data : []).map(emp => ({
+      console.log('[FetchEmployees] API Response:', res.data);
+
+      const data = Array.isArray(res.data) ? res.data : [];
+      if (!Array.isArray(res.data)) {
+        console.warn('[FetchEmployees] Warning: API response is not an array, using empty array');
+      }
+
+      const mapped = data.map(emp => ({
         id: emp.employee_id || '',
         employeeId: emp.employee_id || '',
         officialEmail: emp.official_email || '',
@@ -82,23 +92,47 @@ const AdminEmployeeDirectory = () => {
         dateOfJoining: emp.date_of_joining || '',
         employeeStatus: emp.employee_status || ''
       }));
-      setEmployees(mapped);
-      setError(null);
-      console.log('[FetchEmployees] Success: Fetched', mapped.length, 'employees');
+
+      // Fallback: Client-side filtering if backend doesn't support search
+      const filtered = term
+        ? mapped.filter(emp =>
+            emp.fullName.first.toLowerCase().includes(term.toLowerCase()) ||
+            emp.fullName.last.toLowerCase().includes(term.toLowerCase()) ||
+            emp.officialEmail.toLowerCase().includes(term.toLowerCase()) ||
+            emp.personalEmail.toLowerCase().includes(term.toLowerCase()) ||
+            emp.employeeId.toLowerCase().includes(term.toLowerCase())
+          )
+        : mapped;
+
+      setEmployees(filtered);
+      setError(filtered.length === 0 && term ? 'No employees found for the search term.' : null);
+      console.log('[FetchEmployees] Success: Set employees:', filtered.length);
     } catch (error) {
-      console.error('[FetchEmployees] Error:', error.response?.data || error);
+      console.error('[FetchEmployees] Error:', error.response?.data || error.message);
       setEmployees([]);
-      setError(`Failed to fetch employees: ${error.response?.data?.error || error.message}. Ensure the backend server is running and you are logged in.`);
+      setError(`Failed to fetch employees: ${error.response?.data?.error || error.message}. Please check your connection or login status.`);
     } finally {
+      setIsSearchLoading(false);
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const debouncedFetch = useCallback(debounce(fetchEmployees, 300), []);
+  const debouncedFetch = useCallback(
+    debounce((term) => {
+      console.log('[DebouncedFetch] Triggered with term:', term);
+      fetchEmployees(term);
+    }, 300),
+    [fetchEmployees]
+  );
 
   useEffect(() => {
-    debouncedFetch();
-    return () => debouncedFetch.cancel();
+    console.log('[SearchEffect] Search term changed:', searchTerm);
+    setIsLoading(true);
+    debouncedFetch(searchTerm);
+    return () => {
+      console.log('[SearchEffect] Cleaning up debounced fetch');
+      debouncedFetch.cancel();
+    };
   }, [searchTerm, debouncedFetch]);
 
   useEffect(() => {
@@ -201,7 +235,7 @@ const AdminEmployeeDirectory = () => {
       relieving_date: newEmployee.relievingDate || null,
       date_of_joining: newEmployee.dateOfJoining,
       employee_status: newEmployee.employeeStatus,
-      password: isEditing ? undefined : 'user@123' // Only send password for new employees
+      password: isEditing ? undefined : 'user@123'
     };
 
     console.log('[AddEmployee] Sending payload:', JSON.stringify(payload, null, 2));
@@ -209,20 +243,20 @@ const AdminEmployeeDirectory = () => {
     try {
       if (isEditing && editingEmployeeId) {
         console.log('[AddEmployee] Updating employee with ID:', editingEmployeeId);
-        await axios.put(`${API_BASE_URL}/api/v1/employees/${editingEmployeeId}`, payload, {
+        await axios.put(`${BASE_URL}/api/v1/employees/${editingEmployeeId}`, payload, {
           headers: { 'Content-Type': 'application/json' },
           withCredentials: true
         });
         console.log('[AddEmployee] Employee updated successfully');
       } else {
         console.log('[AddEmployee] Creating new employee');
-        await axios.post(`${API_BASE_URL}/api/v1/employees`, payload, {
+        await axios.post(`${BASE_URL}/api/v1/employees`, payload, {
           headers: { 'Content-Type': 'application/json' },
           withCredentials: true
         });
         console.log('[AddEmployee] Employee created successfully');
       }
-      await fetchEmployees();
+      await fetchEmployees(searchTerm);
       setNewEmployee(initialFormState);
       setShowForm(false);
       setSelectedEmployee(null);
@@ -231,7 +265,7 @@ const AdminEmployeeDirectory = () => {
       setError(null);
     } catch (error) {
       console.error('[AddEmployee] Error:', error.response?.data || error);
-      setError(error.response?.data?.error || `Failed to process employee: ${error.message}. Ensure Employee ID and official email are unique and the backend server is running.`);
+      setError(error.response?.data?.error || `Failed to process employee: ${error.message}. Ensure Employee ID and official email are unique.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -257,7 +291,7 @@ const AdminEmployeeDirectory = () => {
     setIsLoading(true);
     try {
       console.log('[ViewEmployee] Fetching employee with ID:', employee.id);
-      const res = await axios.get(`${API_BASE_URL}/api/v1/employees/${employee.id}`, { withCredentials: true });
+      const res = await axios.get(`${BASE_URL}/api/v1/employees/${employee.id}`, { withCredentials: true });
       console.log('[ViewEmployee] Response:', res.data);
       const employeeData = res.data;
       if (!employeeData || employeeData.error) {
@@ -297,7 +331,7 @@ const AdminEmployeeDirectory = () => {
       console.log('[ViewEmployee] Success: Set selectedEmployee:', JSON.stringify(mapped, null, 2));
     } catch (error) {
       console.error('[ViewEmployee] Error:', error.response?.data || error);
-      setError(error.response?.data?.error || `Failed to fetch employee details: ${error.message}. Ensure you are logged in.`);
+      setError(error.response?.data?.error || `Failed to fetch employee details: ${error.message}.`);
       setSelectedEmployee(null);
     } finally {
       setIsLoading(false);
@@ -346,7 +380,7 @@ const AdminEmployeeDirectory = () => {
         formRef.current.scrollIntoView({ behavior: 'smooth' });
       }
     }, 0);
-    console.log('[UpdateEmployee] Form populated, isEditing:', true, 'editingEmployeeId:', employee.id, 'newEmployee:', JSON.stringify(updatedEmployee, null, 2));
+    console.log('[UpdateEmployee] Form populated, isEditing:', true, 'editingEmployeeId:', employee.id);
   };
 
   const handleAddNew = () => {
@@ -356,6 +390,13 @@ const AdminEmployeeDirectory = () => {
     setEditingEmployeeId(null);
     setError(null);
     console.log('[AddNew] Form opened for new employee');
+  };
+
+  const handleClearSearch = () => {
+    console.log('[ClearSearch] Clearing search term');
+    setSearchTerm('');
+    setError(null);
+    fetchEmployees(''); // Fetch all employees when clearing search
   };
 
   return (
@@ -370,9 +411,19 @@ const AdminEmployeeDirectory = () => {
                 placeholder="Search by name, email, or ID..."
                 className="w-64 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  const newTerm = e.target.value.trim();
+                  console.log('[SearchInput] New search term:', newTerm);
+                  setSearchTerm(newTerm);
+                }}
               />
               <FaSearch className="absolute right-3 top-3.5 text-gray-400" />
+              {searchTerm && (
+                <FaTimes
+                  className="absolute right-8 top-3.5 text-gray-400 cursor-pointer"
+                  onClick={handleClearSearch}
+                />
+              )}
             </div>
             <button
               onClick={handleAddNew}
@@ -387,8 +438,8 @@ const AdminEmployeeDirectory = () => {
           <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
         )}
 
-        {isLoading && (
-          <div className="text-center text-gray-500">Loading employees...</div>
+        {(isLoading || isSearchLoading) && (
+          <div className="text-center text-gray-500">Searching employees...</div>
         )}
 
         <AnimatePresence>
@@ -700,8 +751,10 @@ const AdminEmployeeDirectory = () => {
         </AnimatePresence>
 
         <div className="space-y-4">
-          {employees.length === 0 && !isLoading ? (
-            <p className="text-gray-500 text-center text-lg">No employees added yet.</p>
+          {employees.length === 0 && !isLoading && !isSearchLoading ? (
+            <p className="text-gray-500 text-center text-lg">
+              {searchTerm ? 'No employees found for your search.' : 'No employees added yet.'}
+            </p>
           ) : (
             employees.map((employee) => (
               <div
